@@ -43,6 +43,12 @@ export default function Home() {
       setResult(plan)
       setAppState('results')
       setIsSharedView(true)
+      trackNovusEvent('shared_plan_viewed', {
+        shared_plan_id: sharedId,
+        task_count: plan.tasks.length,
+        decision_count: plan.decisions.length,
+        risk_count: plan.risks.length,
+      })
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
     } catch {
       // invalid or missing data — silently ignore
@@ -56,8 +62,12 @@ export default function Home() {
   }
 
   function loadSample(type: keyof typeof SAMPLES) {
-    trackNovusEvent('transcript_sample_loaded', { sample_type: type })
-    setTranscript(SAMPLES[type].transcript)
+    const sampleTranscript = SAMPLES[type].transcript
+    trackNovusEvent('transcript_sample_loaded', {
+      sample_type: type,
+      transcript_word_count: sampleTranscript.trim().split(/\s+/).length,
+    })
+    setTranscript(sampleTranscript)
     setActiveSample(type)
     setAppState('idle')
     setResult(null)
@@ -101,6 +111,13 @@ export default function Home() {
       trackNovusEvent('execution_plan_generated', {
         task_count: data.tasks.length,
         used_fallback: false,
+        decision_count: data.decisions.length,
+        risk_count: data.risks.length,
+        follow_up_count: data.followUps.length,
+        suggestion_count: data.suggestions.length,
+        timeline_item_count: data.timeline.length,
+        transcript_word_count: transcript.trim().split(/\s+/).length,
+        active_sample_type: activeSample ?? 'custom',
       })
     } catch (err) {
       // Graceful fallback — show mock data with a clean notice
@@ -111,6 +128,13 @@ export default function Home() {
       trackNovusEvent('execution_plan_generated', {
         task_count: fallback.tasks.length,
         used_fallback: true,
+        decision_count: fallback.decisions.length,
+        risk_count: fallback.risks.length,
+        follow_up_count: fallback.followUps.length,
+        suggestion_count: fallback.suggestions.length,
+        timeline_item_count: fallback.timeline.length,
+        transcript_word_count: transcript.trim().split(/\s+/).length,
+        active_sample_type: activeSample ?? 'custom',
       })
       setFallbackReason(
         err instanceof Error ? err.message : 'Live AI analysis is temporarily unavailable. Showing demo output.',
