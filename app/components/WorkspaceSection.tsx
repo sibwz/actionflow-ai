@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Sparkles, Trash2, FileUp, FileText, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { trackNovusEvent } from '../lib/novusTrack'
 
 interface WorkspaceSectionProps {
   transcript: string
@@ -48,7 +49,7 @@ export default function WorkspaceSection({
     if (!transcript) setUploadedFilename(null)
   }, [transcript])
 
-  function processFile(file: File) {
+  function processFile(file: File, uploadMethod: string) {
     if (!file.name.endsWith('.txt')) {
       toast.error('Only .txt files are supported')
       return
@@ -63,6 +64,12 @@ export default function WorkspaceSection({
       onTranscriptChange(text)
       setUploadedFilename(file.name)
       toast.success(`"${file.name}" loaded`)
+      trackNovusEvent('transcript_file_uploaded', {
+        file_name: file.name,
+        file_size_bytes: file.size,
+        word_count: text.trim() ? text.trim().split(/\s+/).length : 0,
+        upload_method: uploadMethod,
+      })
     }
     reader.readAsText(file, 'UTF-8')
   }
@@ -71,12 +78,12 @@ export default function WorkspaceSection({
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer.files[0]
-    if (file) processFile(file)
+    if (file) processFile(file, 'drag_drop')
   }
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) processFile(file)
+    if (file) processFile(file, 'file_browser')
     // Reset so same file can be re-selected
     e.target.value = ''
   }
