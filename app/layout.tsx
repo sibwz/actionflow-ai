@@ -37,7 +37,7 @@ export default function RootLayout({
   y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
   z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);
   })(window,document,'script','pendo');
-})('30c1897d-8551-4fd3-bfd4-e4bd0223399c');
+})('4abdd70e-8823-4865-993e-45f5e522073d');
 `}</Script>
         <Script id="pendo-init" strategy="afterInteractive">{`
 (function(){
