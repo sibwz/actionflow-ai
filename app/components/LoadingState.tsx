@@ -32,7 +32,7 @@ export default function LoadingState() {
         <div
           className="rounded-3xl flex flex-col items-center justify-center gap-8 py-16"
           style={{
-            background: '#161B2E',
+            background: '#18181B',
             border: '1px solid rgba(255,255,255,0.07)',
           }}
         >
@@ -86,6 +86,18 @@ export default function LoadingState() {
                 }}
               />
             ))}
+          </div>
+
+          {/* Skeleton preview */}
+          <div className="w-full px-8 flex flex-col gap-3 pt-2">
+            <div className="af-skeleton-pulse" style={{ height: '16px', width: '100%' }} />
+            <div className="af-skeleton-pulse" style={{ height: '16px', width: '72%' }} />
+            <div className="flex gap-3">
+              <div className="af-skeleton-pulse" style={{ height: '80px', flex: 1 }} />
+              <div className="af-skeleton-pulse" style={{ height: '80px', flex: 1 }} />
+            </div>
+            <div className="af-skeleton-pulse" style={{ height: '12px', width: '55%' }} />
+            <div className="af-skeleton-pulse" style={{ height: '12px', width: '40%' }} />
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import WorkspaceSection from './components/WorkspaceSection'
 import LoadingState from './components/LoadingState'
 import ResultsSection from './components/ResultsSection'
 import ResultsPreview from './components/ResultsPreview'
+import NovusStatus from './components/NovusStatus'
 import { SAMPLES, type ActionPlanResult } from './data/samples'
 
 type AppState = 'idle' | 'loading' | 'results'
@@ -17,6 +18,8 @@ export default function Home() {
   const [appState, setAppState] = useState<AppState>('idle')
   const [result, setResult] = useState<ActionPlanResult | null>(null)
   const [activeSample, setActiveSample] = useState<keyof typeof SAMPLES | null>(null)
+  const [usedFallback, setUsedFallback] = useState(false)
+  const [fallbackReason, setFallbackReason] = useState('')
 
   const workspaceRef = useRef<HTMLDivElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -32,6 +35,7 @@ export default function Home() {
     setActiveSample(type)
     setAppState('idle')
     setResult(null)
+    setUsedFallback(false)
     setTimeout(() => scrollTo(workspaceRef, 'center'), 60)
   }
 
@@ -40,21 +44,46 @@ export default function Home() {
     setActiveSample('team')
     setResult(SAMPLES.team.result)
     setAppState('results')
+    setUsedFallback(false)
     setTimeout(() => scrollTo(resultsRef, 'start'), 80)
   }
 
-  function generate() {
+  async function generate() {
     if (!transcript.trim()) return
     setAppState('loading')
     setResult(null)
+    setUsedFallback(false)
+    setFallbackReason('')
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
 
-    setTimeout(() => {
-      const r = activeSample ? SAMPLES[activeSample].result : SAMPLES.team.result
-      setResult(r)
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript }),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string }
+        // Use the server's clean message if provided; otherwise a generic fallback
+        throw new Error(body.error ?? 'Live AI analysis is temporarily unavailable. Showing demo output.')
+      }
+
+      const data = await res.json() as ActionPlanResult
+      setResult(data)
       setAppState('results')
-      setTimeout(() => scrollTo(resultsRef, 'start'), 80)
-    }, 12_000)
+    } catch (err) {
+      // Graceful fallback — show mock data with a clean notice
+      const fallback = activeSample ? SAMPLES[activeSample].result : SAMPLES.team.result
+      setResult(fallback)
+      setAppState('results')
+      setUsedFallback(true)
+      setFallbackReason(
+        err instanceof Error ? err.message : 'Live AI analysis is temporarily unavailable. Showing demo output.',
+      )
+    }
+
+    setTimeout(() => scrollTo(resultsRef, 'start'), 80)
   }
 
   function handleTranscriptChange(val: string) {
@@ -62,6 +91,7 @@ export default function Home() {
     if (appState === 'results') {
       setAppState('idle')
       setResult(null)
+      setUsedFallback(false)
     }
   }
 
@@ -70,6 +100,7 @@ export default function Home() {
     setAppState('idle')
     setResult(null)
     setActiveSample(null)
+    setUsedFallback(false)
     setTimeout(() => scrollTo(workspaceRef, 'center'), 60)
   }
 
@@ -86,7 +117,6 @@ export default function Home() {
         `,
       }}
     >
-      {/* Content */}
       <div className="relative z-10">
         <Navbar />
 
@@ -94,13 +124,11 @@ export default function Home() {
           {/* ① Hero */}
           <HeroSection onTrySample={() => loadSample('team')} onSeeExample={seeExample} />
 
-          {/* Divider */}
           <Divider />
 
           {/* ② Features */}
           <FeatureGrid />
 
-          {/* Divider */}
           <Divider />
 
           {/* ③ Workspace */}
@@ -120,11 +148,27 @@ export default function Home() {
           {/* ⑤ Results */}
           {appState === 'results' && result && (
             <div ref={resultsRef}>
+              {/* Fallback notice — only when Gemini was unavailable */}
+              {usedFallback && (
+                <div className="max-w-6xl mx-auto px-6 mb-4">
+                  <div
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm"
+                    style={{
+                      background: 'rgba(245,158,11,0.08)',
+                      border: '1px solid rgba(245,158,11,0.22)',
+                      color: '#FCD34D',
+                    }}
+                  >
+                    <span style={{ fontSize: '16px' }}>⚠️</span>
+                    <span>{fallbackReason}</span>
+                  </div>
+                </div>
+              )}
               <ResultsSection result={result} onReset={reset} />
             </div>
           )}
 
-          {/* ⑥ Results Preview (only when idle — helps judges understand the output) */}
+          {/* ⑥ Results Preview (shown when idle to help judges understand the output) */}
           {appState === 'idle' && (
             <>
               <Divider />
@@ -133,7 +177,8 @@ export default function Home() {
           )}
         </main>
 
-        {/* Footer */}
+        <NovusStatus />
+
         <footer
           className="py-10 text-center"
           style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}

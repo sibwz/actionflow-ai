@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useRef } from 'react'
 import {
   FileText,
   CheckCircle2,
@@ -9,8 +10,14 @@ import {
   CalendarDays,
   ListChecks,
   RotateCcw,
+  Download,
+  FileDown,
+  Copy,
+  CheckCheck,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { ActionPlanResult } from '../data/samples'
+import { exportToMarkdown, buildMarkdownString } from '../lib/exportMarkdown'
 import ActionTable from './ActionTable'
 import Timeline from './Timeline'
 
@@ -21,6 +28,51 @@ interface ResultsSectionProps {
 
 export default function ResultsSection({ result, onReset }: ResultsSectionProps) {
   const highCount = result.tasks.filter((t) => t.priority === 'High').length
+  const [copied, setCopied] = useState(false)
+  const [pdfBusy, setPdfBusy] = useState(false)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  async function handleExportPdf() {
+    if (pdfBusy) return
+    setPdfBusy(true)
+    try {
+      const { exportToPdf } = await import('../lib/exportPdf')
+      await exportToPdf(result)
+      toast.success('PDF exported successfully')
+    } catch (err) {
+      console.error('[ExportPDF]', err)
+      toast.error('PDF export failed — please try again')
+    } finally {
+      setPdfBusy(false)
+    }
+  }
+
+  function handleExportMarkdown() {
+    exportToMarkdown(result)
+    toast.success('Markdown downloaded')
+  }
+
+  async function handleCopy() {
+    const text = buildMarkdownString(result)
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      // Fallback for non-HTTPS or restricted contexts
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    setCopied(true)
+    toast.success('Copied to clipboard')
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <section className="px-6 pb-24">
@@ -52,40 +104,74 @@ export default function ResultsSection({ result, onReset }: ResultsSectionProps)
             </div>
           </div>
 
-          {/* New analysis button */}
-          <button
-            onClick={onReset}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              color: '#A1A1AA',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}
-            onMouseEnter={(e) => {
-              const el = e.currentTarget
-              el.style.background = 'rgba(124,58,237,0.1)'
-              el.style.borderColor = 'rgba(124,58,237,0.28)'
-              el.style.color = '#A78BFA'
-              el.style.transform = 'scale(1.02)'
-            }}
-            onMouseLeave={(e) => {
-              const el = e.currentTarget
-              el.style.background = 'rgba(255,255,255,0.04)'
-              el.style.borderColor = 'rgba(255,255,255,0.08)'
-              el.style.color = '#A1A1AA'
-              el.style.transform = 'scale(1)'
-            }}
-          >
-            <RotateCcw size={12} />
-            New Analysis
-          </button>
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Copy Plan */}
+            <ExportButton
+              icon={copied ? <CheckCheck size={12} /> : <Copy size={12} />}
+              label={copied ? 'Copied!' : 'Copy Plan'}
+              onClick={handleCopy}
+              hoverBg="rgba(6,182,212,0.1)"
+              hoverBorder="rgba(6,182,212,0.3)"
+              hoverColor="#06B6D4"
+            />
+
+            {/* Markdown */}
+            <ExportButton
+              icon={<FileDown size={12} />}
+              label="Markdown"
+              onClick={handleExportMarkdown}
+              hoverBg="rgba(34,197,94,0.08)"
+              hoverBorder="rgba(34,197,94,0.28)"
+              hoverColor="#4ADE80"
+            />
+
+            {/* Export PDF */}
+            <ExportButton
+              icon={<Download size={12} />}
+              label={pdfBusy ? 'Exporting...' : 'Export PDF'}
+              onClick={handleExportPdf}
+              disabled={pdfBusy}
+              hoverBg="rgba(139,92,246,0.1)"
+              hoverBorder="rgba(139,92,246,0.28)"
+              hoverColor="#A78BFA"
+            />
+
+            {/* New Analysis */}
+            <button
+              onClick={onReset}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                color: '#A1A1AA',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget
+                el.style.background = 'rgba(139,92,246,0.1)'
+                el.style.borderColor = 'rgba(139,92,246,0.28)'
+                el.style.color = '#A78BFA'
+                el.style.transform = 'scale(1.02)'
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget
+                el.style.background = 'rgba(255,255,255,0.04)'
+                el.style.borderColor = 'rgba(255,255,255,0.08)'
+                el.style.color = '#A1A1AA'
+                el.style.transform = 'scale(1)'
+              }}
+            >
+              <RotateCcw size={12} />
+              New Analysis
+            </button>
+          </div>
         </div>
 
         {/* ── Top row: Summary spans full width ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
           <ResultCard
             icon={<FileText size={15} color="#8B5CF6" />}
-            iconStyle={{ background: 'rgba(124,58,237,0.14)', border: '1px solid rgba(124,58,237,0.24)' }}
+            iconStyle={{ background: 'rgba(139,92,246,0.14)', border: '1px solid rgba(139,92,246,0.24)' }}
             title="Executive Summary"
             className="lg:col-span-2"
           >
@@ -97,7 +183,7 @@ export default function ResultsSection({ result, onReset }: ResultsSectionProps)
           {/* Key Decisions */}
           <ResultCard
             icon={<CheckCircle2 size={15} color="#22C55E" />}
-            iconStyle={{ background: 'rgba(16,185,129,0.14)', border: '1px solid rgba(16,185,129,0.24)' }}
+            iconStyle={{ background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.24)' }}
             title="Key Decisions"
           >
             <ol className="flex flex-col gap-3">
@@ -105,7 +191,7 @@ export default function ResultsSection({ result, onReset }: ResultsSectionProps)
                 <li key={i} className="flex items-start gap-3">
                   <span
                     className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold shrink-0 mt-0.5"
-                    style={{ background: 'rgba(16,185,129,0.14)', color: '#22C55E' }}
+                    style={{ background: 'rgba(34,197,94,0.14)', color: '#22C55E' }}
                   >
                     {i + 1}
                   </span>
@@ -189,7 +275,7 @@ export default function ResultsSection({ result, onReset }: ResultsSectionProps)
         <div className="mb-4">
           <ResultCard
             icon={<ListChecks size={15} color="#8B5CF6" />}
-            iconStyle={{ background: 'rgba(124,58,237,0.14)', border: '1px solid rgba(124,58,237,0.24)' }}
+            iconStyle={{ background: 'rgba(139,92,246,0.14)', border: '1px solid rgba(139,92,246,0.24)' }}
             title="Action Items"
             subtitle={`${result.tasks.length} tasks with owners, priorities, and deadlines`}
           >
@@ -200,7 +286,7 @@ export default function ResultsSection({ result, onReset }: ResultsSectionProps)
         {/* ── Timeline ── */}
         <ResultCard
           icon={<CalendarDays size={15} color="#22C55E" />}
-          iconStyle={{ background: 'rgba(16,185,129,0.14)', border: '1px solid rgba(16,185,129,0.24)' }}
+          iconStyle={{ background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.24)' }}
           title="Execution Timeline"
           subtitle="Key milestones in chronological order"
         >
@@ -208,6 +294,57 @@ export default function ResultsSection({ result, onReset }: ResultsSectionProps)
         </ResultCard>
       </div>
     </section>
+  )
+}
+
+// ─── Shared export button ────────────────────────────────────────────────────
+
+function ExportButton({
+  icon,
+  label,
+  onClick,
+  disabled,
+  hoverBg,
+  hoverBorder,
+  hoverColor,
+}: {
+  icon: React.ReactNode
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  hoverBg: string
+  hoverBorder: string
+  hoverColor: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+      style={{
+        background: 'rgba(255,255,255,0.04)',
+        color: '#A1A1AA',
+        border: '1px solid rgba(255,255,255,0.08)',
+      }}
+      onMouseEnter={(e) => {
+        if (disabled) return
+        const el = e.currentTarget
+        el.style.background = hoverBg
+        el.style.borderColor = hoverBorder
+        el.style.color = hoverColor
+        el.style.transform = 'scale(1.02)'
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget
+        el.style.background = 'rgba(255,255,255,0.04)'
+        el.style.borderColor = 'rgba(255,255,255,0.08)'
+        el.style.color = '#A1A1AA'
+        el.style.transform = 'scale(1)'
+      }}
+    >
+      {icon}
+      {label}
+    </button>
   )
 }
 
