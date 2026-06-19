@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 
 const MESSAGES = [
-  'Reading conversation...',
-  'Finding decisions...',
-  'Extracting tasks...',
-  'Assigning owners...',
-  'Detecting blockers...',
-  'Preparing execution plan...',
+  'Reading transcript',
+  'Finding decisions',
+  'Extracting tasks',
+  'Assigning owners',
+  'Detecting risks',
+  'Building timeline',
+  'Preparing export-ready report',
 ]
 
 export default function LoadingState() {

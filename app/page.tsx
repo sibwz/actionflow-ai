@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import Navbar from './components/Navbar'
 import HeroSection from './components/HeroSection'
 import FeatureGrid from './components/FeatureGrid'
@@ -10,6 +10,7 @@ import ResultsSection from './components/ResultsSection'
 import ResultsPreview from './components/ResultsPreview'
 import NovusStatus from './components/NovusStatus'
 import { SAMPLES, type ActionPlanResult } from './data/samples'
+import { trackNovusEvent } from './lib/novusTrack'
 
 type AppState = 'idle' | 'loading' | 'results'
 
@@ -20,9 +21,33 @@ export default function Home() {
   const [activeSample, setActiveSample] = useState<keyof typeof SAMPLES | null>(null)
   const [usedFallback, setUsedFallback] = useState(false)
   const [fallbackReason, setFallbackReason] = useState('')
+  const [isSharedView, setIsSharedView] = useState(false)
 
   const workspaceRef = useRef<HTMLDivElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
+
+  /* ── Page view tracking ── */
+  useEffect(() => {
+    trackNovusEvent('actionflow_page_view')
+  }, [])
+
+  /* ── Load shared plan from URL on mount ── */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const sharedId = params.get('shared')
+    if (!sharedId) return
+    try {
+      const raw = localStorage.getItem(sharedId)
+      if (!raw) return
+      const plan = JSON.parse(raw) as ActionPlanResult
+      setResult(plan)
+      setAppState('results')
+      setIsSharedView(true)
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+    } catch {
+      // invalid or missing data — silently ignore
+    }
+  }, [])
 
   /* ── helpers ── */
 
@@ -31,6 +56,7 @@ export default function Home() {
   }
 
   function loadSample(type: keyof typeof SAMPLES) {
+    trackNovusEvent('transcript_sample_loaded', { sample_type: type })
     setTranscript(SAMPLES[type].transcript)
     setActiveSample(type)
     setAppState('idle')
@@ -72,12 +98,20 @@ export default function Home() {
       const data = await res.json() as ActionPlanResult
       setResult(data)
       setAppState('results')
+      trackNovusEvent('execution_plan_generated', {
+        task_count: data.tasks.length,
+        used_fallback: false,
+      })
     } catch (err) {
       // Graceful fallback — show mock data with a clean notice
       const fallback = activeSample ? SAMPLES[activeSample].result : SAMPLES.team.result
       setResult(fallback)
       setAppState('results')
       setUsedFallback(true)
+      trackNovusEvent('execution_plan_generated', {
+        task_count: fallback.tasks.length,
+        used_fallback: true,
+      })
       setFallbackReason(
         err instanceof Error ? err.message : 'Live AI analysis is temporarily unavailable. Showing demo output.',
       )
@@ -101,6 +135,8 @@ export default function Home() {
     setResult(null)
     setActiveSample(null)
     setUsedFallback(false)
+    setIsSharedView(false)
+    window.history.replaceState(null, '', window.location.pathname)
     setTimeout(() => scrollTo(workspaceRef, 'center'), 60)
   }
 
@@ -164,7 +200,7 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              <ResultsSection result={result} onReset={reset} />
+              <ResultsSection result={result} onReset={reset} isSharedView={isSharedView} />
             </div>
           )}
 
