@@ -201,7 +201,14 @@ export default function ResultsSection({ result, onReset, isSharedView }: Result
       const { exportToPdf } = await import('../lib/exportPdf')
       await exportToPdf(result)
       toast.success('PDF exported successfully')
-      trackNovusEvent('pdf_exported')
+      trackNovusEvent('pdf_exported', {
+        task_count: result.tasks.length,
+        risk_count: result.risks.length,
+        decision_count: result.decisions.length,
+        timeline_item_count: result.timeline.length,
+        has_high_priority_tasks: highCount > 0,
+        confidence_score: confidence,
+      })
     } catch (err) {
       console.error('[ExportPDF]', err)
       toast.error('PDF export failed — please try again')
@@ -213,13 +220,25 @@ export default function ResultsSection({ result, onReset, isSharedView }: Result
   function handleExportMarkdown() {
     exportToMarkdown(result)
     toast.success('Markdown downloaded')
-    trackNovusEvent('markdown_exported')
+    trackNovusEvent('markdown_exported', {
+      task_count: result.tasks.length,
+      risk_count: result.risks.length,
+      decision_count: result.decisions.length,
+      timeline_item_count: result.timeline.length,
+    })
   }
 
   async function handleCopy() {
     await copyToClipboard(buildMarkdownString(result))
     setCopied(true)
     toast.success('Copied to clipboard')
+    trackNovusEvent('plan_copied_to_clipboard', {
+      task_count: result.tasks.length,
+      risk_count: result.risks.length,
+      decision_count: result.decisions.length,
+      timeline_item_count: result.timeline.length,
+      confidence_score: confidence,
+    })
     if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
     copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
   }
@@ -227,13 +246,22 @@ export default function ResultsSection({ result, onReset, isSharedView }: Result
   async function handleCopyJira() {
     await copyToClipboard(buildJiraString(result))
     toast.success('Jira format copied.')
-    trackNovusEvent('jira_copied')
+    trackNovusEvent('jira_copied', {
+      task_count: result.tasks.length,
+      risk_count: result.risks.length,
+      high_priority_count: highCount,
+    })
   }
 
   async function handleCopyNotion() {
     await copyToClipboard(buildNotionString(result))
     toast.success('Notion format copied.')
-    trackNovusEvent('notion_copied')
+    trackNovusEvent('notion_copied', {
+      task_count: result.tasks.length,
+      risk_count: result.risks.length,
+      decision_count: result.decisions.length,
+      timeline_item_count: result.timeline.length,
+    })
   }
 
   async function handleSharePlan() {
@@ -243,7 +271,12 @@ export default function ResultsSection({ result, onReset, isSharedView }: Result
       const url = `${window.location.origin}${window.location.pathname}?shared=${planId}`
       await copyToClipboard(url)
       toast.success('Share link copied.')
-      trackNovusEvent('share_plan_clicked')
+      trackNovusEvent('share_plan_clicked', {
+        task_count: result.tasks.length,
+        plan_id: planId,
+        risk_count: result.risks.length,
+        confidence_score: confidence,
+      })
     } catch {
       toast.error('Could not create share link.')
     }

@@ -43,6 +43,12 @@ export default function Home() {
       setResult(plan)
       setAppState('results')
       setIsSharedView(true)
+      trackNovusEvent('shared_plan_viewed', {
+        plan_id: sharedId,
+        task_count: plan.tasks.length,
+        risk_count: plan.risks.length,
+        decision_count: plan.decisions.length,
+      })
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
     } catch {
       // invalid or missing data — silently ignore
@@ -71,6 +77,7 @@ export default function Home() {
     setResult(SAMPLES.team.result)
     setAppState('results')
     setUsedFallback(false)
+    trackNovusEvent('example_output_viewed', { sample_type: 'team' })
     setTimeout(() => scrollTo(resultsRef, 'start'), 80)
   }
 
@@ -101,6 +108,10 @@ export default function Home() {
       trackNovusEvent('execution_plan_generated', {
         task_count: data.tasks.length,
         used_fallback: false,
+        decision_count: data.decisions.length,
+        risk_count: data.risks.length,
+        timeline_item_count: data.timeline.length,
+        transcript_word_count: transcript.trim().split(/\s+/).length,
       })
     } catch (err) {
       // Graceful fallback — show mock data with a clean notice
@@ -111,6 +122,10 @@ export default function Home() {
       trackNovusEvent('execution_plan_generated', {
         task_count: fallback.tasks.length,
         used_fallback: true,
+        decision_count: fallback.decisions.length,
+        risk_count: fallback.risks.length,
+        timeline_item_count: fallback.timeline.length,
+        transcript_word_count: transcript.trim().split(/\s+/).length,
       })
       setFallbackReason(
         err instanceof Error ? err.message : 'Live AI analysis is temporarily unavailable. Showing demo output.',
