@@ -20,7 +20,7 @@ import {
 import { toast } from 'sonner'
 import type { ActionPlanResult } from '../data/samples'
 import { exportToMarkdown, buildMarkdownString } from '../lib/exportMarkdown'
-import { trackNovusEvent } from '../lib/novusTrack'
+import { trackNovus } from '../lib/novus'
 import ActionTable from './ActionTable'
 import Timeline from './Timeline'
 
@@ -201,7 +201,7 @@ export default function ResultsSection({ result, onReset, isSharedView }: Result
       const { exportToPdf } = await import('../lib/exportPdf')
       await exportToPdf(result)
       toast.success('PDF exported successfully')
-      trackNovusEvent('pdf_exported', {
+      trackNovus('pdf_exported', {
         task_count: result.tasks.length,
         risk_count: result.risks.length,
         decision_count: result.decisions.length,
@@ -220,7 +220,7 @@ export default function ResultsSection({ result, onReset, isSharedView }: Result
   function handleExportMarkdown() {
     exportToMarkdown(result)
     toast.success('Markdown downloaded')
-    trackNovusEvent('markdown_exported', {
+    trackNovus('markdown_exported', {
       task_count: result.tasks.length,
       risk_count: result.risks.length,
       decision_count: result.decisions.length,
@@ -232,7 +232,7 @@ export default function ResultsSection({ result, onReset, isSharedView }: Result
     await copyToClipboard(buildMarkdownString(result))
     setCopied(true)
     toast.success('Copied to clipboard')
-    trackNovusEvent('plan_copied_to_clipboard', {
+    trackNovus('plan_copied_to_clipboard', {
       task_count: result.tasks.length,
       risk_count: result.risks.length,
       decision_count: result.decisions.length,
@@ -246,7 +246,7 @@ export default function ResultsSection({ result, onReset, isSharedView }: Result
   async function handleCopyJira() {
     await copyToClipboard(buildJiraString(result))
     toast.success('Jira format copied.')
-    trackNovusEvent('jira_copied', {
+    trackNovus('jira_copied', {
       task_count: result.tasks.length,
       risk_count: result.risks.length,
       high_priority_count: highCount,
@@ -256,7 +256,7 @@ export default function ResultsSection({ result, onReset, isSharedView }: Result
   async function handleCopyNotion() {
     await copyToClipboard(buildNotionString(result))
     toast.success('Notion format copied.')
-    trackNovusEvent('notion_copied', {
+    trackNovus('notion_copied', {
       task_count: result.tasks.length,
       risk_count: result.risks.length,
       decision_count: result.decisions.length,
@@ -271,7 +271,7 @@ export default function ResultsSection({ result, onReset, isSharedView }: Result
       const url = `${window.location.origin}${window.location.pathname}?shared=${planId}`
       await copyToClipboard(url)
       toast.success('Share link copied.')
-      trackNovusEvent('share_plan_clicked', {
+      trackNovus('share_plan_clicked', {
         task_count: result.tasks.length,
         plan_id: planId,
         risk_count: result.risks.length,

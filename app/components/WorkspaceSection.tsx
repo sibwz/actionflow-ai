@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Sparkles, Trash2, FileUp, FileText, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { trackNovusEvent } from '../lib/novusTrack'
+import { trackNovus } from '../lib/novus'
 
 interface WorkspaceSectionProps {
   transcript: string
@@ -64,7 +64,7 @@ export default function WorkspaceSection({
       onTranscriptChange(text)
       setUploadedFilename(file.name)
       toast.success(`"${file.name}" loaded`)
-      trackNovusEvent('transcript_file_uploaded', {
+      trackNovus('transcript_file_uploaded', {
         file_name: file.name,
         file_size_bytes: file.size,
         word_count: text.trim() ? text.trim().split(/\s+/).length : 0,

@@ -10,7 +10,7 @@ import ResultsSection from './components/ResultsSection'
 import ResultsPreview from './components/ResultsPreview'
 import NovusStatus from './components/NovusStatus'
 import { SAMPLES, type ActionPlanResult } from './data/samples'
-import { trackNovusEvent } from './lib/novusTrack'
+import { trackNovus } from './lib/novus'
 
 type AppState = 'idle' | 'loading' | 'results'
 
@@ -28,7 +28,7 @@ export default function Home() {
 
   /* ── Page view tracking ── */
   useEffect(() => {
-    trackNovusEvent('actionflow_page_view')
+    trackNovus('actionflow_page_view')
   }, [])
 
   /* ── Load shared plan from URL on mount ── */
@@ -62,7 +62,7 @@ export default function Home() {
   }
 
   function loadSample(type: keyof typeof SAMPLES) {
-    trackNovusEvent('transcript_sample_loaded', { sample_type: type })
+    trackNovus('sample_loaded', { sample_type: type })
     setTranscript(SAMPLES[type].transcript)
     setActiveSample(type)
     setAppState('idle')
@@ -105,7 +105,7 @@ export default function Home() {
       const data = await res.json() as ActionPlanResult
       setResult(data)
       setAppState('results')
-      trackNovusEvent('execution_plan_generated', {
+      trackNovus('plan_generated_success', {
         task_count: data.tasks.length,
         used_fallback: false,
         decision_count: data.decisions.length,
@@ -119,7 +119,7 @@ export default function Home() {
       setResult(fallback)
       setAppState('results')
       setUsedFallback(true)
-      trackNovusEvent('execution_plan_generated', {
+      trackNovus('plan_generated_success', {
         task_count: fallback.tasks.length,
         used_fallback: true,
         decision_count: fallback.decisions.length,

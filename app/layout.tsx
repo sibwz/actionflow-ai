@@ -25,9 +25,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ToastProvider />
         {children}
-        {/* Novus (Pendo) SDK loader */}
-        <Script id="pendo-loader" strategy="afterInteractive">{`
-(function(apiKey){
+        {/* Novus (Pendo) SDK — single unified block */}
+        <Script id="pendo-sdk" strategy="afterInteractive">{`
+(function(){
+  var apiKey='c01d3d77-9b63-4f48-bc12-c1e7c3bf260c';
   (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
   v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
   for(w=0,x=v.length;w<x;++w)(function(m){
@@ -37,12 +38,9 @@ export default function RootLayout({
   y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
   z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);
   })(window,document,'script','pendo');
-})('c01d3d77-9b63-4f48-bc12-c1e7c3bf260c');
-`}</Script>
-        <Script id="pendo-init" strategy="afterInteractive">{`
-(function(){
-  var aid='anon_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-  window.pendo&&window.pendo.initialize({visitor:{id:aid}});
+  var aid;
+  try{aid=localStorage.getItem('_pendo_anon');if(!aid){aid='anon_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);localStorage.setItem('_pendo_anon',aid);}}catch(e){aid='anon_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);}
+  window.pendo.initialize({visitor:{id:aid}});
 })();
 `}</Script>
       </body>
