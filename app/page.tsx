@@ -43,7 +43,7 @@ export default function Home() {
       setResult(plan)
       setAppState('results')
       setIsSharedView(true)
-      trackNovusEvent('shared_plan_viewed', {
+      trackNovus('shared_plan_viewed', {
         plan_id: sharedId,
         task_count: plan.tasks.length,
         risk_count: plan.risks.length,
@@ -77,7 +77,7 @@ export default function Home() {
     setResult(SAMPLES.team.result)
     setAppState('results')
     setUsedFallback(false)
-    trackNovusEvent('example_output_viewed', { sample_type: 'team' })
+    trackNovus('example_output_viewed', { sample_type: 'team' })
     setTimeout(() => scrollTo(resultsRef, 'start'), 80)
   }
 
